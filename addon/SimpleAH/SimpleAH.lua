@@ -964,7 +964,9 @@ SlashCmdList.SIMPLEAH = function(msg)
     msg = msg or ""
     local cmd, arg = msg:match("^%s*(%S*)%s*(.-)%s*$")
     local lc = cmd:lower()
-    if lc == "bind" then
+    if lc == "stats" then
+        if SimpleAH_OpenStats then SimpleAH_OpenStats() end
+    elseif lc == "bind" then
         StartCapture()
     elseif lc == "tooltip" then
         db.tooltip = not db.tooltip
@@ -1001,6 +1003,7 @@ SlashCmdList.SIMPLEAH = function(msg)
     elseif lc == "help" then
         Print("/ah [text]  open the search, optionally with a query")
         Print("/ah bind  set a key that opens the search")
+        Print("/ah stats  open the Stats tab at the auction house (find gear by stats)")
         Print("/ah market [group|blackwater]  choose the auction house")
         Print("/ah tooltip  show or hide prices in item tooltips")
         Print("/ah scale <0.5-2>  window size")

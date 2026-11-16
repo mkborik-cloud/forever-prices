@@ -2,8 +2,9 @@
 ## Title: Simple AH
 ## Notes: Auction house prices from the Blizzard API via the desktop updater. Search with /ah or a key binding.
 ## Author: Marek
-## Version: 1.2.0
+## Version: 1.3.0
 ## SavedVariables: SimpleAHDB, SimpleAHNames
 
 PriceData.lua
 SimpleAH.lua
+StatSearch.lua

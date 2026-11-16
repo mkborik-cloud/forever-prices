@@ -16,6 +16,7 @@ In game
   /reload          load the newest prices (or just log in)
   /ah              open the search (or click the key button in the window to bind a key)
   Shift-click      any item while the search is open to look it up
+  /ah stats        at the auction house: Stats tab, find gear by stats
   /ah market       choose another ruleset or the Blackwater auction house
   /ah help         all commands
 
