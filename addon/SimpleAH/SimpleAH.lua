@@ -1003,7 +1003,7 @@ SlashCmdList.SIMPLEAH = function(msg)
     elseif lc == "help" then
         Print("/ah [text]  open the search, optionally with a query")
         Print("/ah bind  set a key that opens the search")
-        Print("/ah stats  open the Stats tab at the auction house (find gear by stats)")
+        Print("/ah stats  at the auction house: filter Browse results by stats (also the Stats button next to Filter)")
         Print("/ah market [group|blackwater]  choose the auction house")
         Print("/ah tooltip  show or hide prices in item tooltips")
         Print("/ah scale <0.5-2>  window size")

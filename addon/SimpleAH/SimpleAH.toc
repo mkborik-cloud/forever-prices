@@ -7,4 +7,4 @@
 
 PriceData.lua
 SimpleAH.lua
-StatSearch.lua
+StatFilter.lua

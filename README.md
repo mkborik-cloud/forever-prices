@@ -19,7 +19,7 @@ Unzip `SimpleAH.zip`, copy the `SimpleAH` folder into `World of Warcraft\_foreve
 | `/ah [text]` | open the search, optionally with a query |
 | shift-click an item | while the search is open, look up exactly that item |
 | `/ah bind` | set a key that opens the search (or click the key button in the window, or *Options → Keybindings → AddOns → Simple AH*) |
-| `/ah stats` | at the auction house, open the Stats tab to find gear by stats (spell power, healing, agility, defense, …) |
+| Stats button / `/ah stats` | on the Buy tab next to Filter: show only browse results with the stats you tick (spell power, healing, agility, defense, …) |
 | `/ah market [group|blackwater]` | choose another ruleset group or the neutral auction house |\|blackwater]` | choose another ruleset group or the neutral auction house |
 | `/ah tooltip` | show or hide prices in item tooltips |
 | `/ah scale 1.2` | window size (0.5–2) |
