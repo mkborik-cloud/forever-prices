@@ -1,0 +1,63 @@
+name: Update prices
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # every hour
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore price history from the data branch
+        run: |
+          mkdir -p out
+          if git fetch --depth=1 origin data; then
+            git show origin/data:history.json.gz > out/history.json.gz || rm -f out/history.json.gz
+          fi
+
+      - name: Download all EU Forever auction houses
+        env:
+          BNET_CLIENT_ID: ${{ secrets.BNET_CLIENT_ID }}
+          BNET_CLIENT_SECRET: ${{ secrets.BNET_CLIENT_SECRET }}
+        run: python cloud/fetch_all.py --out out
+
+      - name: Publish to the data branch
+        run: |
+          cd out
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prices.lua status.json history.json.gz
+          git commit -q -m "Prices $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+
+      # GitHub pauses scheduled workflows after 60 days without commits on the
+      # default branch. A small monthly commit keeps the schedule alive.
+      - name: Keep the schedule alive
+        if: github.event_name == 'schedule'
+        run: |
+          last=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          if [ $(( now - last )) -gt $(( 40 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            date -u +'%Y-%m-%dT%H:%M:%SZ' > .keepalive
+            git add .keepalive
+            git commit -q -m "Keep scheduled updates running"
+            git push -q
+          fi

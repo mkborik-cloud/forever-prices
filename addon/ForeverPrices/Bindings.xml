@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="FOREVERPRICES_TOGGLE" header="FOREVERPRICES" category="ADDONS">
+        ForeverPrices_Toggle()
+    </Binding>
+</Bindings>

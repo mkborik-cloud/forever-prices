@@ -1,0 +1,9 @@
+config.ini
+history.json
+out/
+__pycache__/
+*.pyc
+client/.venv/
+client/build/
+client/dist/
+client/*.spec
