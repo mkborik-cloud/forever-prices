@@ -1,60 +1,55 @@
-# ForeverPrices
+# Simple AH
 
-TSM-style auction house prices for WoW Forever (EU). It works in two parts:
+TSM-style auction house prices for WoW Forever (EU), with an in-game search.
 
-- **Desktop updater** (`updater.py`) downloads your auction house from the official Blizzard Battle.net API, works out prices and writes them into the addon.
-- **Addon** (`_forever_\Interface\AddOns\ForeverPrices`) gives you a search window and prices in item tooltips.
+Three parts:
+
+- **Cloud job** (`cloud/fetch_all.py`, run hourly by `.github/workflows/update-prices.yml`): downloads every EU Forever auction house from the Blizzard API and publishes `prices.lua` on the `data` branch.
+- **Client** (`client/simple_ah_client.py`, built into `SimpleAH.exe`): downloads `prices.lua` into the addon every 30 minutes and starts with Windows. No API key needed.
+- **Addon** (`addon/SimpleAH`): search window and tooltip prices. Picks the Alliance or Horde auction house from the character's faction.
 
 Addons can't reach the internet, so new prices show up in game after `/reload` or a relog.
 
-## 1. Battle.net API client (once, free)
+## For players
 
-1. Go to https://develop.battle.net/access/clients and sign in.
-2. **Create Client**:
-   - Client Name: something unique, e.g. `ForeverPrices-MB7342`
-   - Redirect URL: `http://localhost`
-   - Service URL: tick "I do not have a service URL"
-   - Intended use: "Personal auction house price tracker"
-3. Copy the **Client ID** and **Client Secret** into `config.ini`. Keep the secret private.
-
-## 2. Auction house
-
-Already set to **EU PvP Horde = AH 113**.
-
-The Forever API uses namespace `dynamic-forever-eu` and these paths:
-- `/data/wow/ruleset/{id}/auctions/{ahId}`
-- `/data/wow/ruleset/{id}/auctions/{ahId}/commodities`
-
-The API ignores the ruleset in the path, so the auction house ID is what counts. Known EU IDs:
-- 113 = PvP Horde (confirmed by the Thorium Bar price)
-- 110–118 and 119–125 are the other groups (Alliance, Horde, Blackwater)
-
-To switch, run `python updater.py --setup --ah <ID>`.
-
-## 3. Everyday use
-
-- `2 - Run updater.bat` updates every hour. Leave the window running.
-- In game:
-  - `/reload` loads the new prices.
-  - `/fp` or your key binding opens the search.
-  - Type a name, or **shift-click any item** (bags, chat, AH, loot) while the window is open to look up exactly that item.
+Unzip `SimpleAH.zip`, copy the `SimpleAH` folder into `World of Warcraft\_forever_\Interface\AddOns`, then run `SimpleAH.exe` once.
 
 | Command | What it does |
 |---|---|
-| `/fp [text]` | open the search, optionally with a query |
-| `/fp bind` | set a key that opens the search; you can also click the key button in the window, or use *Options → Keybindings → AddOns → Forever Prices* |
-| `/fp tooltip` | show or hide prices in item tooltips |
-| `/fp scale 1.2` | window size (0.5–2) |
-| `/fp info` | data status |
-| `/fp reset` | reset window position |
-
-## Columns
+| `/ah [text]` | open the search, optionally with a query |
+| shift-click an item | while the search is open, look up exactly that item |
+| `/ah bind` | set a key that opens the search (or click the key button in the window, or *Options → Keybindings → AddOns → Simple AH*) |
+| `/ah market [group\|blackwater]` | choose another ruleset group or the neutral auction house |
+| `/ah tooltip` | show or hide prices in item tooltips |
+| `/ah scale 1.2` | window size (0.5–2) |
+| `/ah info` | data status |
+| `/ah reset` | reset window position |
 
 | Column | Meaning |
 |---|---|
 | Min | cheapest unit listed |
 | Market | mean of the cheapest ~15% of units, outliers removed (similar to TSM DBMarket) |
-| 7d avg | mean daily market value over 7 days, from `history.json`; accurate after a few days of running the updater |
+| 7d avg | mean daily market value over the last 7 days |
 | Qty | units listed |
 
-The first time you open the search, the addon loads item names in the background ("Loading names X%"). They are saved, so later sessions start ready.
+## Forever auction API
+
+Namespace `dynamic-forever-eu`. Paths:
+- `/data/wow/ruleset/{id}/auctions/{ahId}`
+- `/data/wow/ruleset/{id}/auctions/{ahId}/commodities`
+
+The ruleset in the path is ignored; the auction house ID decides. EU IDs come in groups of Alliance / Horde / Blackwater:
+
+| Group | Alliance | Horde | Blackwater |
+|---|---|---|---|
+| pvp (confirmed) | 110 | 113 | 116 |
+| g2 | 111 | 114 | 117 |
+| g3 (empty) | 112 | 115 | 118 |
+| g4 | 119 | 120 | 121 |
+| g5 | 123 | 124 | 125 |
+
+## Maintainer setup
+
+- Repository secrets `BNET_CLIENT_ID` and `BNET_CLIENT_SECRET` hold a Battle.net API client from https://develop.battle.net/access/clients.
+- `client/build.bat` builds `client/dist/SimpleAH.zip`.
+- `updater.py` is the original single-machine updater; it uses `config.ini` (not committed) and writes the same file format.

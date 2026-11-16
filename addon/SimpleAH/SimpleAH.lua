@@ -1,7 +1,7 @@
--- Forever Prices
+-- Simple AH
 -- Auction house prices for WoW Forever, supplied by the desktop updater (Blizzard API) in PriceData.lua.
--- /fp [text]   open the search
--- /fp bind     set a key that opens the search
+-- /ah [text]   open the search
+-- /ah bind     set a key that opens the search
 
 local ADDON = ...
 
@@ -35,9 +35,9 @@ local ROW_H      = 24
 local MAX_ROWS   = 12
 local FOOT_H     = 26
 
-local BIND_ACTION = "FOREVERPRICES_TOGGLE"
-BINDING_HEADER_FOREVERPRICES = "Forever Prices"
-BINDING_NAME_FOREVERPRICES_TOGGLE = "Open price search"
+local BIND_ACTION = "SIMPLEAH_TOGGLE"
+BINDING_HEADER_SIMPLEAH = "Simple AH"
+BINDING_NAME_SIMPLEAH_TOGGLE = "Open price search"
 
 local defaults = {
     point   = { "TOP", "UIParent", "TOP", 0, -140 },
@@ -46,7 +46,7 @@ local defaults = {
 }
 
 local db, names
-local DATA = ForeverPricesData or {}
+local DATA = SimpleAHData or {}
 local MK = { items = {}, count = 0, scanned = 0, label = "" } -- the market being shown
 local GROUP_LABELS = { pvp = "PvP", g2 = "Group 2", g3 = "Group 3", g4 = "Group 4", g5 = "Group 5" }
 
@@ -73,7 +73,7 @@ local function GetPrice(itemID)
 end
 
 -- Public API for other addons / macros
-ForeverPrices = {
+SimpleAH = {
     GetPrice  = GetPrice,
     GetMarket = function(id) local p = GetPrice(id); return p and p.market end,
     GetMin    = function(id) local p = GetPrice(id); return p and p.min end,
@@ -311,7 +311,7 @@ end
 -- Window
 -- ---------------------------------------------------------------------------
 
-local frame = CreateFrame("Frame", "ForeverPricesFrame", UIParent)
+local frame = CreateFrame("Frame", "SimpleAHFrame", UIParent)
 frame:SetSize(WIDTH, SEARCH_H)
 frame:SetFrameStrata("DIALOG")
 frame:SetClampedToScreen(true)
@@ -319,7 +319,7 @@ frame:SetMovable(true)
 frame:EnableMouse(true)
 frame:RegisterForDrag("LeftButton")
 frame:Hide()
-tinsert(UISpecialFrames, "ForeverPricesFrame") -- ESC closes
+tinsert(UISpecialFrames, "SimpleAHFrame") -- ESC closes
 
 Fill(frame, "BACKGROUND", T.surface):SetAllPoints()
 Outline(frame, T.hairline)
@@ -359,7 +359,7 @@ Outline(keyBtn, T.hairline)
 keyBtn.text = Label(keyBtn, FONT_UI, 11, "CENTER")
 keyBtn.text:SetPoint("CENTER", 0, 0)
 
-local search = CreateFrame("EditBox", "ForeverPricesSearchBox", searchRow)
+local search = CreateFrame("EditBox", "SimpleAHSearchBox", searchRow)
 search:SetPoint("LEFT", glyph, "RIGHT", 10, 0)
 search:SetPoint("RIGHT", keyBtn, "LEFT", -10, 0)
 search:SetHeight(SEARCH_H - 8)
@@ -524,7 +524,7 @@ local MODIFIERS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LA
                     LMETA = true, RMETA = true, UNKNOWN = true }
 
 local function Print(msg)
-    print(T.accentHex .. "Forever Prices|r  " .. msg)
+    print(T.accentHex .. "Simple AH|r  " .. msg)
 end
 
 local function StopCapture()
@@ -673,7 +673,7 @@ Refresh = function(resort)
         header:Hide(); list:Hide(); track:Hide(); thumb:Hide()
         local text
         if not hasData then
-            text = T.muted .. "No prices yet. Run the ForeverPrices updater on your PC, then type /reload.|r"
+            text = T.muted .. "No prices yet. Run SimpleAH.exe on your PC, then type /reload.|r"
         elseif querying then
             text = T.muted .. "No items match." ..
                 (indexed < total and format(" Item names are still loading (%d%%).", floor(indexed / total * 100)) or "") .. "|r"
@@ -876,7 +876,7 @@ local function OpenSearch(text)
     search:SetFocus()
 end
 
-function ForeverPrices_Toggle()
+function SimpleAH_Toggle()
     if frame:IsShown() then
         frame:Hide()
     else
@@ -934,14 +934,14 @@ pcall(events.RegisterEvent, events, "ITEM_DATA_LOAD_RESULT") -- not every client
 events:SetScript("OnEvent", function(_, event, a1, a2)
     if event == "ADDON_LOADED" then
         if a1 ~= ADDON then return end
-        ForeverPricesDB = ForeverPricesDB or {}
-        db = ForeverPricesDB
+        SimpleAHDB = SimpleAHDB or {}
+        db = SimpleAHDB
         for k, v in pairs(defaults) do
             if db[k] == nil then db[k] = v end
         end
-        ForeverPricesNames = ForeverPricesNames or {}
-        names = ForeverPricesNames
-        DATA = ForeverPricesData or DATA
+        SimpleAHNames = SimpleAHNames or {}
+        names = SimpleAHNames
+        DATA = SimpleAHData or DATA
 
         frame:ClearAllPoints()
         local p = db.point
@@ -958,9 +958,9 @@ end)
 -- Slash commands
 -- ---------------------------------------------------------------------------
 
-SLASH_FOREVERPRICES1 = "/fp"
-SLASH_FOREVERPRICES2 = "/foreverprices"
-SlashCmdList.FOREVERPRICES = function(msg)
+SLASH_SIMPLEAH1 = "/ah"
+SLASH_SIMPLEAH2 = "/simpleah"
+SlashCmdList.SIMPLEAH = function(msg)
     msg = msg or ""
     local cmd, arg = msg:match("^%s*(%S*)%s*(.-)%s*$")
     local lc = cmd:lower()
@@ -988,7 +988,7 @@ SlashCmdList.FOREVERPRICES = function(msg)
             local labels = {}
             for _, g in ipairs(Groups()) do labels[#labels + 1] = g .. " (" .. GroupLabel(g) .. ")" end
             Print("Showing " .. MK.label .. ". Groups: " .. table.concat(labels, ", ") .. ".")
-            Print("Use /fp market <group>, or /fp market blackwater to switch the neutral auction house on or off.")
+            Print("Use /ah market <group>, or /ah market blackwater to switch the neutral auction house on or off.")
         elseif want == "blackwater" or want == "neutral" then
             db.neutral = not db.neutral
             SelectMarket()
@@ -999,13 +999,13 @@ SlashCmdList.FOREVERPRICES = function(msg)
             Print("Showing " .. MK.label .. ".")
         end
     elseif lc == "help" then
-        Print("/fp [text]  open the search, optionally with a query")
-        Print("/fp bind  set a key that opens the search")
-        Print("/fp market [group|blackwater]  choose the auction house")
-        Print("/fp tooltip  show or hide prices in item tooltips")
-        Print("/fp scale <0.5-2>  window size")
-        Print("/fp info  data status")
-        Print("/fp reset  reset window position")
+        Print("/ah [text]  open the search, optionally with a query")
+        Print("/ah bind  set a key that opens the search")
+        Print("/ah market [group|blackwater]  choose the auction house")
+        Print("/ah tooltip  show or hide prices in item tooltips")
+        Print("/ah scale <0.5-2>  window size")
+        Print("/ah info  data status")
+        Print("/ah reset  reset window position")
     elseif msg == "" and frame:IsShown() then
         frame:Hide()
     else

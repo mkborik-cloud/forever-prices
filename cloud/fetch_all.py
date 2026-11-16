@@ -1,6 +1,6 @@
 """
 Cloud job: downloads every EU WoW Forever auction house and writes one
-prices.lua that the ForeverPrices downloader installs for everyone.
+prices.lua that the Simple AH client installs for everyone.
 
 Runs in GitHub Actions every hour. Needs two environment variables:
     BNET_CLIENT_ID, BNET_CLIENT_SECRET

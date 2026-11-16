@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="SIMPLEAH_TOGGLE" header="SIMPLEAH" category="ADDONS">
+        SimpleAH_Toggle()
+    </Binding>
+</Bindings>

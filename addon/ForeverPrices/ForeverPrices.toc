@@ -1,9 +1,0 @@
-## Interface: 16001
-## Title: Forever Prices
-## Notes: Auction house prices from the Blizzard API via the desktop updater. Search with /fp or a key binding.
-## Author: Marek
-## Version: 1.1.0
-## SavedVariables: ForeverPricesDB, ForeverPricesNames
-
-PriceData.lua
-ForeverPrices.lua

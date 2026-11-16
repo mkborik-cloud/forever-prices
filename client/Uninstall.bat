@@ -1,2 +1,2 @@
 @echo off
-"%LOCALAPPDATA%\ForeverPrices\ForeverPrices.exe" --uninstall
+"%LOCALAPPDATA%\SimpleAH\SimpleAH.exe" --uninstall
