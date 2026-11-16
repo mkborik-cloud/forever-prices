@@ -2,7 +2,9 @@ name: Update prices
 
 on:
   schedule:
-    - cron: "17 * * * *"   # every hour
+    # GitHub often skips or delays scheduled runs, so ask often. Runs without a
+    # new Blizzard snapshot end early and publish nothing.
+    - cron: "7,17,27,37,47,57 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -23,20 +25,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Restore price history from the data branch
+      - name: Restore history and last status from the data branch
         run: |
-          mkdir -p out
+          mkdir -p out prev
           if git fetch --depth=1 origin data; then
             git show origin/data:history.json.gz > out/history.json.gz || rm -f out/history.json.gz
+            git show origin/data:status.json > prev/status.json || rm -f prev/status.json
           fi
 
       - name: Download all EU Forever auction houses
         env:
           BNET_CLIENT_ID: ${{ secrets.BNET_CLIENT_ID }}
           BNET_CLIENT_SECRET: ${{ secrets.BNET_CLIENT_SECRET }}
-        run: python cloud/fetch_all.py --out out
+        run: python cloud/fetch_all.py --out out --previous-status prev/status.json
 
       - name: Publish to the data branch
+        if: hashFiles('out/UNCHANGED') == ''
         run: |
           cd out
           git init -q -b data
@@ -47,7 +51,7 @@ jobs:
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
 
       # GitHub pauses scheduled workflows after 60 days without commits on the
-      # default branch. A small monthly commit keeps the schedule alive.
+      # default branch. A small commit every 40 days keeps the schedule alive.
       - name: Keep the schedule alive
         if: github.event_name == 'schedule'
         run: |

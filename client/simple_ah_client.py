@@ -5,7 +5,7 @@ First run (double-click):
   - finds WoW Forever (the SimpleAH addon folder must already be in Interface/AddOns)
   - copies itself to %LOCALAPPDATA%\\SimpleAH and starts with Windows
   - downloads the latest prices
-Afterwards it runs quietly in the background and refreshes prices every 30 minutes.
+Afterwards it runs quietly in the background and refreshes prices every 15 minutes.
 Prices show up in game after /reload or a relog.
 
 Flags: --background (used by autostart), --uninstall
@@ -23,7 +23,8 @@ import winreg
 
 DATA_URL = "https://raw.githubusercontent.com/mkborik-cloud/forever-prices/data/prices.lua"
 APP_NAME = "SimpleAH"
-CHECK_EVERY = 30 * 60
+CHECK_EVERY = 15 * 60     # cheap: unchanged files answer 304 Not Modified
+RETRY_AFTER = 2 * 60
 USER_AGENT = "SimpleAH-Client/1.0"
 
 LOCAL_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), APP_NAME)
@@ -54,12 +55,37 @@ def log(msg):
         pass
 
 
+_kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+_kernel32.CreateMutexW.restype = ctypes.c_void_p
+_kernel32.CreateMutexW.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_wchar_p)
+
+
 def single_instance():
     """Returns a handle while this is the only background copy, else None."""
-    handle = ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\SimpleAHClient")
-    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+    ctypes.set_last_error(0)
+    handle = _kernel32.CreateMutexW(None, False, "Local\\SimpleAHClient")
+    if ctypes.get_last_error() == 183:  # ERROR_ALREADY_EXISTS
         return None
     return handle
+
+
+def startup_shortcut_path():
+    appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
+    return os.path.join(appdata, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "Simple AH.lnk")
+
+
+def make_startup_shortcut():
+    """A shortcut in the Startup folder; more reliable than the Run key on some PCs."""
+    lnk = startup_shortcut_path()
+    script = (
+        "$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:SAH_LNK);"
+        "$s.TargetPath=$env:SAH_EXE;$s.Arguments='--background';"
+        "$s.WorkingDirectory=$env:SAH_DIR;$s.Save()"
+    )
+    env = dict(os.environ, SAH_LNK=lnk, SAH_EXE=INSTALLED_EXE, SAH_DIR=LOCAL_DIR)
+    subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                   env=env, capture_output=True, creationflags=0x08000000)  # CREATE_NO_WINDOW
+    return os.path.exists(lnk)
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +220,8 @@ def download_prices(forever):
 # ---------------------------------------------------------------------------
 
 def set_autostart(enabled):
+    # Both a Run entry and a Startup-folder shortcut: some PCs skip one of them.
+    # The single-instance check keeps it to one running copy.
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
         if enabled:
             winreg.SetValueEx(k, APP_NAME, 0, winreg.REG_SZ, f'"{INSTALLED_EXE}" --background')
@@ -202,6 +230,14 @@ def set_autostart(enabled):
                 winreg.DeleteValue(k, APP_NAME)
             except OSError:
                 pass
+    if enabled:
+        if not make_startup_shortcut():
+            log("could not create the Startup shortcut")
+    else:
+        try:
+            os.remove(startup_shortcut_path())
+        except OSError:
+            pass
 
 
 def copy_self():
@@ -244,6 +280,7 @@ def uninstall():
 
 def background():
     if not single_instance():
+        log("background updater already running")
         return
     forever = find_forever()
     if not forever:
@@ -253,9 +290,11 @@ def background():
     while True:
         try:
             download_prices(forever)
-        except Exception as e:  # network down, GitHub hiccup, ...
+            wait = CHECK_EVERY
+        except Exception as e:  # network not up yet after boot, GitHub hiccup, ...
             log(f"update failed: {e}")
-        time.sleep(CHECK_EVERY)
+            wait = RETRY_AFTER
+        time.sleep(wait)
 
 
 def remove_old_version(forever):
@@ -300,7 +339,7 @@ def first_run():
     start_background()
     message("The Simple AH updater is running.\n\n"
             f"{got}\n"
-            "It starts with Windows and refreshes prices every 30 minutes.\n\n"
+            "It starts with Windows and refreshes prices every 15 minutes.\n\n"
             "In game: type /reload, then /ah to search. Shift-click any item while the window is open.")
 
 
@@ -315,4 +354,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        import traceback
+        log("crash: " + traceback.format_exc().replace("\n", " | "))
+        raise

@@ -68,6 +68,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="out")
     ap.add_argument("--history", default=None)
+    ap.add_argument("--previous-status", default=None,
+                    help="status.json of the last publish; skip publishing when Blizzard has no new snapshot")
     args = ap.parse_args()
 
     cid = os.environ.get("BNET_CLIENT_ID", "")
@@ -125,6 +127,18 @@ def main():
         raise SystemExit("No auction data received; keeping the previous files.")
 
     os.makedirs(args.out, exist_ok=True)
+    previous = {}
+    if args.previous_status and os.path.exists(args.previous_status):
+        try:
+            with open(args.previous_status, encoding="utf-8") as f:
+                previous = {m["id"]: m.get("scanned") for m in json.load(f).get("markets", [])}
+        except (OSError, ValueError, KeyError):
+            previous = {}
+    if previous and len(previous) == len(markets) and all(
+            previous.get(m["id"]) == int(m["scanned"]) for m in markets):
+        log("Blizzard has no new snapshot since the last publish; nothing to do.")
+        open(os.path.join(args.out, "UNCHANGED"), "w").close()
+        return
     updater.write_text_atomic(os.path.join(args.out, "prices.lua"), updater.render_lua(markets, REGION.upper()))
     with open(os.path.join(args.out, "status.json"), "w", encoding="utf-8") as f:
         json.dump({"updated": int(time.time()), "region": REGION.upper(), "markets": summary}, f, indent=1)

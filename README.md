@@ -5,7 +5,7 @@ TSM-style auction house prices for WoW Forever (EU), with an in-game search.
 Three parts:
 
 - **Cloud job** (`cloud/fetch_all.py`, run hourly by `.github/workflows/update-prices.yml`): downloads every EU Forever auction house from the Blizzard API and publishes `prices.lua` on the `data` branch.
-- **Client** (`client/simple_ah_client.py`, built into `SimpleAH.exe`): downloads `prices.lua` into the addon every 30 minutes and starts with Windows. No API key needed.
+- **Client** (`client/simple_ah_client.py`, built into `SimpleAH.exe`): downloads `prices.lua` into the addon every 15 minutes and starts with Windows. No API key needed.
 - **Addon** (`addon/SimpleAH`): search window and tooltip prices. Picks the Alliance or Horde auction house from the character's faction.
 
 Addons can't reach the internet, so new prices show up in game after `/reload` or a relog.
