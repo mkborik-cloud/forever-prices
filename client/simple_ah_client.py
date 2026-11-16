@@ -5,13 +5,15 @@ First run (double-click):
   - finds WoW Forever (the SimpleAH addon folder must already be in Interface/AddOns)
   - copies itself to %LOCALAPPDATA%\\SimpleAH and starts with Windows
   - downloads the latest prices
-Afterwards it runs quietly in the background and refreshes prices every 15 minutes.
-Prices show up in game after /reload or a relog.
+Afterwards it runs quietly in the background. Blizzard publishes a new auction
+snapshot about once an hour, so the client sleeps until the next snapshot is due,
+then downloads it once. Prices show up in game after /reload or a relog.
 
 Flags: --background (used by autostart), --uninstall
 """
 
 import ctypes
+import json
 import os
 import shutil
 import subprocess
@@ -22,9 +24,12 @@ import urllib.request
 import winreg
 
 DATA_URL = "https://raw.githubusercontent.com/mkborik-cloud/forever-prices/data/prices.lua"
+STATUS_URL = "https://raw.githubusercontent.com/mkborik-cloud/forever-prices/data/status.json"
 APP_NAME = "SimpleAH"
-CHECK_EVERY = 15 * 60     # cheap: unchanged files answer 304 Not Modified
-RETRY_AFTER = 2 * 60
+SNAPSHOT_EVERY = 60 * 60  # Blizzard publishes auction data hourly
+PUBLISH_LAG = 15 * 60     # time for the cloud job to pick it up and GitHub's cache to refresh
+LATE_POLL = 5 * 60        # when a snapshot is overdue, look again this often (status.json is ~2 KB)
+RETRY_AFTER = 2 * 60      # network not up yet, GitHub hiccup
 USER_AGENT = "SimpleAH-Client/1.0"
 
 LOCAL_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), APP_NAME)
@@ -289,12 +294,42 @@ def background():
     log("background updater started")
     while True:
         try:
-            download_prices(forever)
-            wait = CHECK_EVERY
+            wait = check_for_snapshot(forever)
         except Exception as e:  # network not up yet after boot, GitHub hiccup, ...
             log(f"update failed: {e}")
             wait = RETRY_AFTER
-        time.sleep(wait)
+        # sleep by the wall clock in short steps, so waking the PC from sleep doesn't add delay
+        deadline = time.time() + wait
+        while time.time() < deadline:
+            time.sleep(min(60, max(1, deadline - time.time())))
+
+
+def latest_snapshot():
+    """Newest Blizzard snapshot time (unix seconds) the cloud has published."""
+    req = urllib.request.Request(STATUS_URL, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        status = json.loads(resp.read())
+    return max(int(m.get("scanned", 0)) for m in status.get("markets", [])) or int(status.get("updated", 0))
+
+
+def next_wait(snapshot, now=None):
+    """Seconds to sleep: until the next snapshot should be online, or a short poll if it is late."""
+    now = time.time() if now is None else now
+    due = snapshot + SNAPSHOT_EVERY + PUBLISH_LAG
+    return int(min(max(due - now, LATE_POLL), SNAPSHOT_EVERY + PUBLISH_LAG))
+
+
+def check_for_snapshot(forever):
+    """Downloads prices only when the cloud has a newer snapshot. Returns seconds to wait."""
+    snapshot = latest_snapshot()
+    have = int(read_state().get("snapshot", "0") or 0)
+    if snapshot > have or not has_live_prices(forever):
+        download_prices(forever)
+        write_state(snapshot=snapshot)
+        log(f"new snapshot from {time.strftime('%H:%M', time.localtime(snapshot))}")
+    wait = next_wait(snapshot)
+    log(f"next check in {wait // 60} min")
+    return wait
 
 
 def remove_old_version(forever):
@@ -329,7 +364,8 @@ def first_run():
                 "Then run SimpleAH.exe again.", MB_ICONWARN)
         return
     try:
-        download_prices(forever)
+        write_state(snapshot=0)  # always fetch on a fresh install
+        check_for_snapshot(forever)
         got = "Prices are downloaded."
     except Exception as e:
         log(f"first download failed: {e}")
@@ -339,7 +375,7 @@ def first_run():
     start_background()
     message("The Simple AH updater is running.\n\n"
             f"{got}\n"
-            "It starts with Windows and refreshes prices every 15 minutes.\n\n"
+            "It starts with Windows and downloads each new hourly auction snapshot.\n\n"
             "In game: type /reload, then /ah to search. Shift-click any item while the window is open.")
 
 

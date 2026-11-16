@@ -10,7 +10,7 @@ Install
   2. Double-click SimpleAH.exe.
      Windows may show "Windows protected your PC" because the app is not signed:
      click "More info", then "Run anyway".
-     It downloads prices, starts with Windows and keeps them fresh in the background.
+     It downloads prices, starts with Windows and fetches each new hourly snapshot.
 
 In game
   /reload          load the newest prices (or just log in)
