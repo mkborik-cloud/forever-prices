@@ -4,10 +4,13 @@ Forever Prices
 Auction house prices for WoW Forever (EU), refreshed every hour.
 
 Install
-  1. Double-click ForeverPrices.exe.
+  1. Copy the ForeverPrices folder into
+       World of Warcraft\_forever_\Interface\AddOns
+     (usually C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns)
+  2. Double-click ForeverPrices.exe.
      Windows may show "Windows protected your PC" because the app is not signed:
      click "More info", then "Run anyway".
-  2. That's it. It installs the addon, downloads prices and starts with Windows.
+     It downloads prices, starts with Windows and keeps them fresh in the background.
 
 In game
   /reload          load the newest prices (or just log in)
@@ -20,4 +23,4 @@ Prices come from the official Blizzard auction API. Your character picks the
 Alliance or Horde auction house automatically.
 
 Uninstall
-  Run Uninstall.bat, then delete World of Warcraft\_forever_\Interface\AddOns\ForeverPrices.
+  Run Uninstall.bat, then delete Interface\AddOns\ForeverPrices.

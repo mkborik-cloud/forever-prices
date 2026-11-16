@@ -1,12 +1,18 @@
 @echo off
-rem Builds dist\ForeverPrices.zip (ForeverPrices.exe + Uninstall.bat + README.txt) for friends.
+rem Builds dist\ForeverPrices.zip for friends:
+rem   ForeverPrices\         the addon, copied into Interface\AddOns by hand
+rem   ForeverPrices.exe      downloads prices in the background
+rem   Uninstall.bat, README.txt
 cd /d "%~dp0"
 if not exist .venv python -m venv .venv
 .venv\Scripts\python -m pip install -q pyinstaller
-.venv\Scripts\pyinstaller --noconfirm --onefile --noconsole --name ForeverPrices ^
-  --add-data "..\addon\ForeverPrices;ForeverPrices" forever_prices_client.py
+.venv\Scripts\pyinstaller --noconfirm --onefile --noconsole --name ForeverPrices forever_prices_client.py
 if errorlevel 1 exit /b 1
-copy /y Uninstall.bat dist\ >nul
-copy /y README.txt dist\ >nul
-powershell -NoProfile -Command "Compress-Archive -Force -Path dist\ForeverPrices.exe,dist\Uninstall.bat,dist\README.txt -DestinationPath dist\ForeverPrices.zip"
+if exist dist\package rmdir /s /q dist\package
+mkdir dist\package
+xcopy /e /i /q ..\addon\ForeverPrices dist\package\ForeverPrices >nul
+copy /y dist\ForeverPrices.exe dist\package\ >nul
+copy /y Uninstall.bat dist\package\ >nul
+copy /y README.txt dist\package\ >nul
+powershell -NoProfile -Command "Compress-Archive -Force -Path dist\package\* -DestinationPath dist\ForeverPrices.zip"
 echo Built dist\ForeverPrices.zip
