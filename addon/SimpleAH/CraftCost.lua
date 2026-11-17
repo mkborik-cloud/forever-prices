@@ -1,9 +1,10 @@
 -- Simple AH: craft cost in the profession window.
 -- Under the selected recipe it shows what the reagents cost at the auction
--- house (Simple AH market prices), what the crafted item sells for, and the
+-- house (Simple AH market prices) or at a vendor, whichever is cheaper, what
+-- the crafted item sells for, and the
 -- profit after the 5% auction house cut. Hover the line for a breakdown.
 
-local floor, format = math.floor, string.format
+local floor, max, format = math.floor, math.max, string.format
 
 local GOLD = "|cffd9b36b"
 local MUTED = "|cff8a93a0"
@@ -29,6 +30,66 @@ local function Price(itemID)
     if not (SimpleAH and itemID) then return nil end
     local p = SimpleAH.GetMarket(itemID) or SimpleAH.GetMin(itemID)
     if p and p > 0 then return p end
+end
+
+-- ---------------------------------------------------------------------------
+-- Vendor prices
+-- Exact prices are learned from any vendor you open (unlimited-stock items),
+-- saved in SimpleAHDB.vendor. Until then, known vendor reagents are estimated
+-- from the item's sell price (vendors sell at 4x what they pay).
+-- ---------------------------------------------------------------------------
+
+local VENDOR_ITEMS = {
+    -- threads
+    2320, 2321, 4291, 8343, 14341, 38426,
+    -- dyes, bleach, salt, flux
+    2324, 2325, 2604, 2605, 4340, 4341, 4342, 6260, 6261, 4289, 2880, 3466, 18567,
+    -- vials
+    3371, 3372, 8925, 18256,
+    -- cooking
+    159, 2678, 2692, 3713, 30817, 1179,
+    -- enchanting and engineering
+    4470, 6217, 4399, 4400, 10647, 10648, 11291, 4289,
+    -- inks and parchment
+    39354, 10648,
+}
+local isVendorItem = {}
+for _, id in ipairs(VENDOR_ITEMS) do isVendorItem[id] = true end
+
+local function VendorDB()
+    SimpleAHDB = SimpleAHDB or {}
+    SimpleAHDB.vendor = SimpleAHDB.vendor or {}
+    return SimpleAHDB.vendor
+end
+
+-- price, exact
+local function VendorPrice(itemID)
+    local learned = VendorDB()[itemID]
+    if learned then return learned, true end
+    if isVendorItem[itemID] then
+        local sell = select(11, (C_Item and C_Item.GetItemInfo or GetItemInfo)(itemID))
+        if sell and sell > 0 then return sell * 4, false end
+    end
+end
+
+local function LearnVendor()
+    if not (GetMerchantNumItems and GetMerchantItemInfo and GetMerchantItemID) then return end
+    local db = VendorDB()
+    for i = 1, GetMerchantNumItems() or 0 do
+        local _, _, price, quantity, numAvailable, _, _, extendedCost = GetMerchantItemInfo(i)
+        local id = GetMerchantItemID(i)
+        if id and price and price > 0 and not extendedCost and numAvailable == -1 then
+            db[id] = price / max(quantity or 1, 1)
+        end
+    end
+end
+
+-- cheapest of auction house and vendor: price, source ("ah", "vendor", "vendor~")
+local function ReagentPrice(itemID)
+    local ah = Price(itemID)
+    local v, exact = VendorPrice(itemID)
+    if v and (not ah or v <= ah) then return v, exact and "vendor" or "vendor~" end
+    if ah then return ah, "ah" end
 end
 
 local function ItemName(id)
@@ -73,13 +134,13 @@ local function FromRecipe(recipeID)
         local needed = (slot.required ~= false) and (basic == nil or slot.reagentType == nil or slot.reagentType == basic)
         if needed and slot.reagents and #slot.reagents > 0 and (slot.quantityRequired or 0) > 0 then
             -- several qualities of one reagent: take the cheapest one with a price
-            local best, bestPrice = slot.reagents[1].itemID, nil
+            local best, bestPrice, bestSrc = slot.reagents[1].itemID, nil, nil
             for _, opt in ipairs(slot.reagents) do
-                local p = Price(opt.itemID)
-                if p and (not bestPrice or p < bestPrice) then best, bestPrice = opt.itemID, p end
+                local p, src = ReagentPrice(opt.itemID)
+                if p and (not bestPrice or p < bestPrice) then best, bestPrice, bestSrc = opt.itemID, p, src end
             end
             if best then
-                r.reagents[#r.reagents + 1] = { id = best, name = ItemName(best), count = slot.quantityRequired, price = bestPrice }
+                r.reagents[#r.reagents + 1] = { id = best, name = ItemName(best), count = slot.quantityRequired, price = bestPrice, src = bestSrc }
             end
         end
     end
@@ -94,7 +155,8 @@ local function FromTradeSkill(index)
         local name, _, count = GetTradeSkillReagentInfo(index, i)
         local id = IDFromLink(GetTradeSkillReagentItemLink(index, i))
         if id and count then
-            r.reagents[#r.reagents + 1] = { id = id, name = name or ItemName(id), count = count, price = Price(id) }
+            local p, src = ReagentPrice(id)
+            r.reagents[#r.reagents + 1] = { id = id, name = name or ItemName(id), count = count, price = p, src = src }
         end
     end
     r.outputID = IDFromLink(GetTradeSkillItemLink and GetTradeSkillItemLink(index))
@@ -127,11 +189,12 @@ local function MakeLine(parent)
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
         GameTooltip:AddLine("Simple AH  craft cost")
         for _, g in ipairs(r.reagents) do
-            GameTooltip:AddDoubleLine(format("%dx %s", g.count, g.name),
-                g.price and Money(g.price * g.count) or (MUTED .. "no AH price|r"), 1, 1, 1, 1, 1, 1)
+            local tag = (g.src == "vendor" and MUTED .. " vendor|r") or (g.src == "vendor~" and MUTED .. " vendor (est.)|r") or ""
+            GameTooltip:AddDoubleLine(format("%dx %s%s", g.count, g.name, tag),
+                g.price and Money(g.price * g.count) or (MUTED .. "no price|r"), 1, 1, 1, 1, 1, 1)
         end
         if r.missing > 0 then
-            GameTooltip:AddLine("Reagents without an AH price (often vendor items) are not counted.", 0.6, 0.6, 0.6, true)
+            GameTooltip:AddLine("Reagents without a price are not counted. Open a vendor that sells them once and Simple AH remembers the price.", 0.6, 0.6, 0.6, true)
         end
         if r.value then
             GameTooltip:AddLine(" ")
@@ -148,7 +211,7 @@ local function Show(line, r)
     line.result = r
     if not r or #r.reagents == 0 then line:Hide(); return end
     local cost = GOLD .. "Craft cost|r  " .. Money(r.cost)
-    if r.missing > 0 then cost = cost .. MUTED .. format("  (+%d without AH price)|r", r.missing) end
+    if r.missing > 0 then cost = cost .. MUTED .. format("  (+%d without price)|r", r.missing) end
     line.top:SetText(cost)
     if r.value then
         local profit = r.value * 0.95 - r.cost
@@ -200,7 +263,10 @@ end
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("TRADE_SKILL_SHOW")
+events:RegisterEvent("MERCHANT_SHOW")
+events:RegisterEvent("MERCHANT_UPDATE")
 events:SetScript("OnEvent", function(_, event)
+    if event == "MERCHANT_SHOW" or event == "MERCHANT_UPDATE" then LearnVendor(); return end
     HookRetail()
     HookClassic()
     if event ~= "ADDON_LOADED" then
