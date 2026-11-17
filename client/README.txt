@@ -17,6 +17,7 @@ In game
   /ah              open the search (or click the key button in the window to bind a key)
   Shift-click      any item while the search is open to look it up
   Stats button     on the Buy tab next to Filter: show only results with chosen stats or consumable effects
+  Professions      under each recipe: craft cost, AH value and profit (hover for details)
   /ah market       choose another ruleset or the Blackwater auction house
   /ah help         all commands
 
