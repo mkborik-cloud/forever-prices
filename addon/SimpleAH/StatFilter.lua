@@ -76,6 +76,84 @@ local PATTERNS = {
     { "mp5",   "(%d+) mana every 5 sec" },
 }
 
+-- Consumables: read from the "Use:" line of potions, elixirs, flasks, food,
+-- scrolls, oils and stones. A pattern without a capture is a yes/no effect.
+local CONSUMABLES = {
+    { key = "c_spell",  name = "Spell Damage" },
+    { key = "c_heal",   name = "Healing" },
+    { key = "c_ap",     name = "Attack Power" },
+    { key = "c_str",    name = "Strength" },
+    { key = "c_agi",    name = "Agility" },
+    { key = "c_sta",    name = "Stamina" },
+    { key = "c_int",    name = "Intellect" },
+    { key = "c_spi",    name = "Spirit" },
+    { key = "c_crit",   name = "Crit %" },
+    { key = "c_armor",  name = "Armor" },
+    { key = "c_hp",     name = "Max Health" },
+    { key = "c_mana",   name = "Max Mana" },
+    { key = "c_mp5",    name = "Mana per 5 sec" },
+    { key = "c_hres",   name = "Restores Health" },
+    { key = "c_mres",   name = "Restores Mana" },
+    { key = "c_resist", name = "Resistance / Absorb" },
+    { key = "c_food",   name = "Well Fed (food)" },
+    { key = "c_weapon", name = "Weapon Oil / Stone" },
+    { key = "c_speed",  name = "Run Speed" },
+}
+
+local USE_PATTERNS = {
+    { "c_spell",  "damage and healing done by magical spells and effects by up to (%d+)" },
+    { "c_heal",   "damage and healing done by magical spells and effects by up to (%d+)" },
+    { "c_spell",  "damage done by magical spells and effects by up to (%d+)" },
+    { "c_spell",  "spell damage by up to (%d+)" },
+    { "c_spell",  "spell %a+ damage by up to (%d+)" },
+    { "c_spell",  "%a+ spell damage by up to (%d+)" },
+    { "c_spell",  "spell damage by (%d+)" },
+    { "c_spell",  "spell power by (%d+)" },
+    { "c_heal",   "healing done by [%a%s]-by up to (%d+)" },
+    { "c_heal",   "healing spells by up to (%d+)" },
+    { "c_heal",   "healing done by up to (%d+)" },
+    { "c_heal",   "spell power by (%d+)" },
+    { "c_ap",     "attack power by (%d+)" },
+    { "c_ap",     "(%d+) attack power" },
+    { "c_str",    "strength by (%d+)" },
+    { "c_str",    "(%d+) strength" },
+    { "c_agi",    "agility by (%d+)" },
+    { "c_agi",    "(%d+) agility" },
+    { "c_sta",    "stamina by (%d+)" },
+    { "c_sta",    "(%d+) stamina" },
+    { "c_int",    "intellect by (%d+)" },
+    { "c_int",    "(%d+) intellect" },
+    { "c_spi",    "spirit by (%d+)" },
+    { "c_spi",    "(%d+) spirit" },
+    { "c_spi",    "(%d+) stamina and spirit" },
+    { "c_crit",   "critical strike by (%d+)%%" },
+    { "c_crit",   "critical strike chance[%a%s]-by (%d+)%%" },
+    { "c_crit",   "critical chance[%a%s]-by (%d+)%%" },
+    { "c_armor",  "armor by (%d+)" },
+    { "c_armor",  "(%d+) armor" },
+    { "c_hp",     "maximum health by (%d+)" },
+    { "c_mana",   "maximum mana by (%d+)" },
+    { "c_mp5",    "(%d+) mana per 5 sec" },
+    { "c_mp5",    "(%d+) mana every 5 sec" },
+    { "c_mp5",    "(%d+) mana to the caster every 5 sec" },
+    { "c_hres",   "restores (%d+) to %d+ health" },
+    { "c_hres",   "restores (%d+) health" },
+    { "c_hres",   "heals (%d+) to %d+" },
+    { "c_mres",   "restores (%d+) to %d+ mana" },
+    { "c_mres",   "restores (%d+) mana over" },
+    { "c_mres",   "restores (%d+) mana%.?$" },
+    { "c_resist", "resistance by (%d+)" },
+    { "c_resist", "(%d+) %a+ resistance" },
+    { "c_resist", "absorbs (%d+)" },
+    { "c_food",   "well fed" },
+    { "c_weapon", "applied to [%a%s]-weapon" },
+    { "c_weapon", "weapon damage by (%d+)" },
+    { "c_weapon", "on a melee weapon" },
+    { "c_weapon", "to a melee weapon" },
+    { "c_speed",  "run speed" },
+    { "c_speed",  "movement speed" },
+}
+
 local function Print(msg) print("|cffd9b36bSimple AH|r  " .. msg) end
 
 local function ParseLines(lines, s)
@@ -92,6 +170,29 @@ local function ParseLines(lines, s)
     return s
 end
 SimpleAH_ParseStatLines = ParseLines -- /run check of tooltip wording
+
+local function ParseUseLines(lines, s)
+    s = s or {}
+    for _, text in ipairs(lines) do
+        local lower = text:lower()
+        if lower:find("^use:") then
+            for _, p in ipairs(USE_PATTERNS) do
+                local v = lower:match(p[2])
+                if v then s[p[1]] = max(s[p[1]] or 0, tonumber(v) or 1) end
+            end
+        end
+    end
+    return s
+end
+SimpleAH_ParseUseLines = ParseUseLines
+
+local function IsConsumable(itemID)
+    local get = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    if not get then return true end
+    local classID = select(6, get(itemID))
+    local want = Enum and Enum.ItemClass and Enum.ItemClass.Consumable or 0
+    return classID == nil or classID == want
+end
 
 local function KeyLink(itemKey)
     local suffix = itemKey.itemSuffix
@@ -144,6 +245,7 @@ local function StatsFor(itemKey)
         end
     end
     ParseLines(lines, s)
+    if IsConsumable(itemKey.itemID) then ParseUseLines(lines, s) end
     statCache[id] = s
     return s
 end
@@ -166,8 +268,10 @@ end
 
 local function Active()
     local f, list = Settings(), {}
-    for _, s in ipairs(STATS) do
-        if f[s.key] then list[#list + 1] = { key = s.key, min = tonumber(f[s.key]) or 0 } end
+    for _, group in ipairs({ STATS, CONSUMABLES }) do
+        for _, s in ipairs(group) do
+            if f[s.key] then list[#list + 1] = { key = s.key, min = tonumber(f[s.key]) or 0 } end
+        end
     end
     return list
 end
@@ -274,7 +378,8 @@ end
 local function BuildMenu()
     menu = SafeFrame("Frame", AuctionHouseFrame, "BackdropTemplate", "SimpleAHStatMenu")
     menu:SetFrameStrata("DIALOG")
-    menu:SetSize(210, 74 + #STATS * 20)
+    local COL = 210
+    menu:SetSize(COL * 2 + 10, 92 + max(#STATS, #CONSUMABLES) * 20)
     menu:EnableMouse(true)
     if menu.SetBackdrop then
         menu:SetBackdrop({
@@ -290,22 +395,27 @@ local function BuildMenu()
     local title = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOPLEFT", 12, -10)
     title:SetText("Filter by stats")
-    local minHead = menu:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    minHead:SetPoint("TOPRIGHT", -16, -12)
-    minHead:SetText("min")
 
     menu.rows = {}
-    for i, s in ipairs(STATS) do
-        local y = -30 - (i - 1) * 20
+    for col, group in ipairs({ { "Gear", STATS }, { "Consumables", CONSUMABLES } }) do
+    local x = 8 + (col - 1) * COL
+    local head = menu:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    head:SetPoint("TOPLEFT", x + 4, -32)
+    head:SetText("|cffd9b36b" .. group[1] .. "|r")
+    local minHead = menu:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    minHead:SetPoint("TOPRIGHT", menu, "TOPLEFT", x + COL - 14, -34)
+    minHead:SetText("min")
+    for i, s in ipairs(group[2]) do
+        local y = -50 - (i - 1) * 20
         local cb = SafeFrame("CheckButton", menu, "UICheckButtonTemplate")
         cb:SetSize(20, 20)
-        cb:SetPoint("TOPLEFT", 8, y)
+        cb:SetPoint("TOPLEFT", x, y)
         local label = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         label:SetPoint("LEFT", cb, "RIGHT", 2, 0)
         label:SetText(s.name)
         local eb = SafeFrame("EditBox", menu, "InputBoxTemplate")
         eb:SetSize(34, 16)
-        eb:SetPoint("TOPRIGHT", -14, y - 2)
+        eb:SetPoint("TOPRIGHT", menu, "TOPLEFT", x + COL - 10, y - 2)
         eb:SetAutoFocus(false)
         eb:SetNumeric(true)
         eb:SetMaxLetters(4)
@@ -323,6 +433,7 @@ local function BuildMenu()
         eb:SetScript("OnEnterPressed", eb.ClearFocus)
         eb:SetScript("OnEscapePressed", eb.ClearFocus)
         menu.rows[s.key] = { cb = cb, eb = eb }
+    end
     end
 
     local clear = SafeFrame("Button", menu, "UIPanelButtonTemplate")
@@ -386,7 +497,7 @@ local function Build()
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Filter by stats")
-        GameTooltip:AddLine("Show only results with the stats you tick, e.g. Spell Power or Agility.", 1, 1, 1, true)
+        GameTooltip:AddLine("Show only results with the stats you tick: gear stats like Spell Power or Agility, or what a consumable does (elixirs, potions, food, oils).", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     button:SetScript("OnLeave", function() GameTooltip:Hide() end)
