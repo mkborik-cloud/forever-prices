@@ -174,13 +174,16 @@ SimpleAH_CraftCost = FromRecipe -- for /run checks
 
 local function MakeLine(parent)
     local f = CreateFrame("Frame", nil, parent)
-    f:SetSize(420, 30)
+    f:SetSize(240, 44)
     f:SetFrameLevel((parent:GetFrameLevel() or 1) + 5)
     f.top = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.top:SetPoint("TOPLEFT", 0, 0)
     f.top:SetJustifyH("LEFT")
+    f.mid = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    f.mid:SetPoint("TOPLEFT", f.top, "BOTTOMLEFT", 0, -3)
+    f.mid:SetJustifyH("LEFT")
     f.bottom = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    f.bottom:SetPoint("TOPLEFT", f.top, "BOTTOMLEFT", 0, -3)
+    f.bottom:SetPoint("TOPLEFT", f.mid, "BOTTOMLEFT", 0, -3)
     f.bottom:SetJustifyH("LEFT")
     f:EnableMouse(true)
     f:SetScript("OnEnter", function(self)
@@ -219,12 +222,14 @@ local function Show(line, r)
     if r.value then
         local profit = r.value * 0.95 - r.cost
         local color = profit >= 0 and "|cff4ade80+" or "|cfff87171"
-        line.bottom:SetText(GOLD .. "AH value|r  " .. Money(r.value)
-            .. "    " .. GOLD .. "AH cut 5%|r  |cfff87171-|r" .. Money(r.value * 0.05)
-            .. "    " .. GOLD .. "Profit|r  " .. color .. Money(profit) .. "|r")
+        line.mid:SetText(GOLD .. "AH value|r  " .. Money(r.value)
+            .. "   " .. MUTED .. "(5% cut|r |cfff87171-|r" .. Money(r.value * 0.05) .. MUTED .. ")|r")
+        line.bottom:SetText(GOLD .. "Profit|r  " .. color .. Money(profit) .. "|r")
     elseif r.outputID then
-        line.bottom:SetText(GOLD .. "AH value|r  " .. MUTED .. "no AH price|r")
+        line.mid:SetText(GOLD .. "AH value|r  " .. MUTED .. "no AH price|r")
+        line.bottom:SetText("")
     else
+        line.mid:SetText("")
         line.bottom:SetText("")
     end
     line:Show()
@@ -246,7 +251,8 @@ local function HookRetail()
     local form = ProfessionsFrame and ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.SchematicForm
     if not form or retailLine then return end
     retailLine = MakeLine(form)
-    retailLine:SetPoint("BOTTOMLEFT", form, "BOTTOMLEFT", 22, 12)
+    -- left side, above the Track Recipe row so the two never overlap
+    retailLine:SetPoint("BOTTOMLEFT", form, "BOTTOMLEFT", 22, 48)
     if form.Init then hooksecurefunc(form, "Init", UpdateRetail) end
     form:HookScript("OnShow", function(self) UpdateRetail(self) end)
 end
