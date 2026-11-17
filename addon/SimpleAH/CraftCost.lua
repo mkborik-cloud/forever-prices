@@ -174,7 +174,7 @@ SimpleAH_CraftCost = FromRecipe -- for /run checks
 
 local function MakeLine(parent)
     local f = CreateFrame("Frame", nil, parent)
-    f:SetSize(300, 30)
+    f:SetSize(420, 30)
     f:SetFrameLevel((parent:GetFrameLevel() or 1) + 5)
     f.top = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.top:SetPoint("TOPLEFT", 0, 0)
@@ -199,7 +199,10 @@ local function MakeLine(parent)
         if r.value then
             GameTooltip:AddLine(" ")
             GameTooltip:AddDoubleLine("AH value" .. (r.made ~= 1 and format(" (%gx)", r.made) or ""), Money(r.value), 1, 1, 1, 1, 1, 1)
-            GameTooltip:AddDoubleLine("After 5% AH cut", Money(r.value * 0.95), 1, 1, 1, 1, 1, 1)
+            GameTooltip:AddDoubleLine("AH cut 5%", "-" .. Money(r.value * 0.05), 1, 1, 1, 1, 0.45, 0.45)
+            GameTooltip:AddDoubleLine("You receive", Money(r.value * 0.95), 1, 1, 1, 1, 1, 1)
+            GameTooltip:AddDoubleLine("Craft cost", "-" .. Money(r.cost), 1, 1, 1, 1, 0.45, 0.45)
+            GameTooltip:AddDoubleLine("Profit", Money(r.value * 0.95 - r.cost), 1, 1, 1, 1, 1, 1)
         end
         GameTooltip:Show()
     end)
@@ -216,7 +219,9 @@ local function Show(line, r)
     if r.value then
         local profit = r.value * 0.95 - r.cost
         local color = profit >= 0 and "|cff4ade80+" or "|cfff87171"
-        line.bottom:SetText(GOLD .. "AH value|r  " .. Money(r.value) .. "    " .. GOLD .. "Profit|r  " .. color .. Money(profit) .. "|r")
+        line.bottom:SetText(GOLD .. "AH value|r  " .. Money(r.value)
+            .. "    " .. GOLD .. "AH cut 5%|r  |cfff87171-|r" .. Money(r.value * 0.05)
+            .. "    " .. GOLD .. "Profit|r  " .. color .. Money(profit) .. "|r")
     elseif r.outputID then
         line.bottom:SetText(GOLD .. "AH value|r  " .. MUTED .. "no AH price|r")
     else
