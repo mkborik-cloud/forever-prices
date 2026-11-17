@@ -1,4 +1,4 @@
-﻿## Interface: 16001
+## Interface: 16001
 ## Title: Simple AH
 ## Notes: Auction house prices from the Blizzard API via the desktop updater. Search with /ah or a key binding.
 ## Author: Marek
