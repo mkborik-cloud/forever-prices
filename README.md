@@ -21,7 +21,7 @@ Unzip `SimpleAH.zip`, copy the `SimpleAH` folder into `World of Warcraft\_foreve
 | `/ah bind` | set a key that opens the search (or click the key button in the window, or *Options → Keybindings → AddOns → Simple AH*) |
 | Stats button / `/ah stats` | on the Buy tab next to Filter: show only browse results with the stats you tick (spell power, healing, agility, defense, …) or consumable effects (spell damage elixirs, healing/mana potions, food, oils, …) |
 | Profession window | under the selected recipe: reagent cost at AH prices, AH value of the result and profit after the 5% cut (hover for a breakdown) |
-| `/ah market [group|blackwater]` choose another ruleset group or the neutral auction house |\|blackwater]` | choose another ruleset group or the neutral auction house |
+| `/ah market [group\|blackwater]` | choose another ruleset group or the neutral auction house |
 | `/ah tooltip` | show or hide prices in item tooltips |
 | `/ah scale 1.2` | window size (0.5–2) |
 | `/ah info` | data status |
