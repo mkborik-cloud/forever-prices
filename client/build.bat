@@ -3,6 +3,7 @@ rem Builds dist\SimpleAH.zip for friends:
 rem   SimpleAH\         the addon, copied into Interface\AddOns by hand
 rem   SimpleAH.exe      downloads prices in the background
 rem   Uninstall.bat, README.txt
+rem and dist\SimpleAH-Linux.zip (addon + simple-ah.py)
 cd /d "%~dp0"
 if not exist .venv python -m venv .venv
 .venv\Scripts\python -m pip install -q pyinstaller
@@ -16,3 +17,5 @@ copy /y Uninstall.bat dist\package\ >nul
 copy /y README.txt dist\package\ >nul
 powershell -NoProfile -Command "Compress-Archive -Force -Path dist\package\* -DestinationPath dist\SimpleAH.zip"
 echo Built dist\SimpleAH.zip
+rem Linux package: addon + python updater
+.venv\Scripts\python linux\make_zip.py

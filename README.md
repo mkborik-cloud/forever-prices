@@ -55,3 +55,11 @@ The ruleset in the path is ignored; the auction house ID decides. EU IDs come in
 - Repository secrets `BNET_CLIENT_ID` and `BNET_CLIENT_SECRET` hold a Battle.net API client from https://develop.battle.net/access/clients.
 - `client/build.bat` builds `client/dist/SimpleAH.zip`.
 - `updater.py` is the original single-machine updater; it uses `config.ini` (not committed) and writes the same file format.
+
+## Linux
+
+`client/build.bat` also builds `dist/SimpleAH-Linux.zip`: the addon plus `simple-ah.py`
+(python3, standard library only). `python3 simple-ah.py install` finds WoW Forever in the usual
+Wine / Lutris / Steam (Proton) / Bottles prefixes (or takes the WoW folder as an argument),
+downloads prices and runs the updater as a systemd user service, falling back to desktop autostart.
+See `client/linux/README.txt`.
