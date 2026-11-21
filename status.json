@@ -1,0 +1,102 @@
+{
+ "updated": 1795282272,
+ "region": "EU",
+ "markets": [
+  {
+   "id": 110,
+   "name": "Alliance Auction House",
+   "group": "pvp",
+   "items": 7009,
+   "listings": 305941,
+   "scanned": 1795281808
+  },
+  {
+   "id": 111,
+   "name": "Alliance Auction House",
+   "group": "g2",
+   "items": 7066,
+   "listings": 324759,
+   "scanned": 1795281810
+  },
+  {
+   "id": 113,
+   "name": "Horde Auction House",
+   "group": "pvp",
+   "items": 6933,
+   "listings": 340523,
+   "scanned": 1795281811
+  },
+  {
+   "id": 114,
+   "name": "Horde Auction House",
+   "group": "g2",
+   "items": 6902,
+   "listings": 308126,
+   "scanned": 1795281808
+  },
+  {
+   "id": 116,
+   "name": "Blackwater Auction House",
+   "group": "pvp",
+   "items": 4293,
+   "listings": 58806,
+   "scanned": 1795281773
+  },
+  {
+   "id": 117,
+   "name": "Blackwater Auction House",
+   "group": "g2",
+   "items": 4329,
+   "listings": 58704,
+   "scanned": 1795281773
+  },
+  {
+   "id": 119,
+   "name": "Alliance Auction House",
+   "group": "g4",
+   "items": 4784,
+   "listings": 54358,
+   "scanned": 1795281772
+  },
+  {
+   "id": 120,
+   "name": "Horde Auction House",
+   "group": "g4",
+   "items": 3719,
+   "listings": 34113,
+   "scanned": 1795281768
+  },
+  {
+   "id": 121,
+   "name": "Blackwater Auction House",
+   "group": "g4",
+   "items": 688,
+   "listings": 2485,
+   "scanned": 1795281762
+  },
+  {
+   "id": 123,
+   "name": "Alliance Auction House",
+   "group": "g5",
+   "items": 4281,
+   "listings": 43271,
+   "scanned": 1795281770
+  },
+  {
+   "id": 124,
+   "name": "Horde Auction House",
+   "group": "g5",
+   "items": 4092,
+   "listings": 41057,
+   "scanned": 1795281769
+  },
+  {
+   "id": 125,
+   "name": "Blackwater Auction House",
+   "group": "g5",
+   "items": 646,
+   "listings": 2007,
+   "scanned": 1795281762
+  }
+ ]
+}
