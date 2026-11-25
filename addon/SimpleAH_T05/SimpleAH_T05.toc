@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: Simple AH: T0.5 Planner
+## Notes: Shopping list for the Tier 0.5 (Dungeon Set 2) quest chain, priced with Simple AH. /t05
+## Author: Marek
+## Version: 1.0.0
+## OptionalDeps: SimpleAH
+## SavedVariables: SimpleAHT05DB
+
+T05.lua

@@ -77,6 +77,7 @@ SimpleAH = {
     GetPrice  = GetPrice,
     GetMarket = function(id) local p = GetPrice(id); return p and p.market end,
     GetMin    = function(id) local p = GetPrice(id); return p and p.min end,
+    GetMarketInfo = function() return MK.label, MK.scanned end,
 }
 
 local function ItemName(id)
