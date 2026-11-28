@@ -33,11 +33,19 @@ jobs:
             git show origin/data:status.json > prev/status.json || rm -f prev/status.json
           fi
 
+      # last hour's auctions, compared with the new snapshot to estimate sales
+      - name: Restore the previous auction snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: snap
+          key: sales-snapshot-${{ github.run_id }}
+          restore-keys: sales-snapshot-
+
       - name: Download all EU Forever auction houses
         env:
           BNET_CLIENT_ID: ${{ secrets.BNET_CLIENT_ID }}
           BNET_CLIENT_SECRET: ${{ secrets.BNET_CLIENT_SECRET }}
-        run: python cloud/fetch_all.py --out out --previous-status prev/status.json
+        run: python cloud/fetch_all.py --out out --previous-status prev/status.json --snapshot snap/sales.bin
 
       - name: Publish to the data branch
         if: hashFiles('out/UNCHANGED') == ''
@@ -49,6 +57,13 @@ jobs:
           git add prices.lua status.json history.json.gz
           git commit -q -m "Prices $(date -u +'%Y-%m-%d %H:%M') UTC"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+
+      - name: Keep this snapshot for the next run
+        if: hashFiles('out/UNCHANGED') == ''
+        uses: actions/cache/save@v4
+        with:
+          path: snap
+          key: sales-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
 
       # GitHub pauses scheduled workflows after 60 days without commits on the
       # default branch. A small commit every 40 days keeps the schedule alive.

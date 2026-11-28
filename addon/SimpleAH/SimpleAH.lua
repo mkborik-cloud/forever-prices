@@ -78,6 +78,9 @@ SimpleAH = {
     GetMarket = function(id) local p = GetPrice(id); return p and p.market end,
     GetMin    = function(id) local p = GetPrice(id); return p and p.min end,
     GetMarketInfo = function() return MK.label, MK.scanned end,
+    -- estimated units sold per day (7-day average), nil while the data is still being collected
+    GetSoldPerDay = function(id) return MK.sold and MK.sold[id] end,
+    HasSalesData = function() return MK.sold ~= nil and next(MK.sold) ~= nil end,
 }
 
 local function ItemName(id)
@@ -265,7 +268,7 @@ local function SelectMarket()
     end
     if chosen then
         local m = chosen.m
-        MK = { id = chosen.id, items = m.items or {}, count = m.count or 0,
+        MK = { id = chosen.id, items = m.items or {}, count = m.count or 0, sold = m.sold or {},
                scanned = m.scanned or DATA.updated or 0, group = m.group, faction = m.faction,
                label = (GroupLabel(m.group) .. " " .. (m.faction or "")):gsub("^%s+", "") }
     elseif DATA.items then -- older single-market file
@@ -901,6 +904,11 @@ local function AddTooltip(tt, itemID)
         end
         tt:AddDoubleLine("AH quantity", format("%s in %d auctions", Thousands(p.qty), p.auctions),
             0.55, 0.6, 0.65, 0.8, 0.82, 0.85)
+        if MK.sold and next(MK.sold) then
+            local n = MK.sold[itemID]
+            tt:AddDoubleLine("AH sold / day (est.)", n and (n >= 10 and Thousands(n) or format("%.1f", n)) or "0",
+                0.55, 0.6, 0.65, 0.8, 0.82, 0.85)
+        end
     else
         tt:AddLine("Not on the auction house", 0.55, 0.6, 0.65)
     end

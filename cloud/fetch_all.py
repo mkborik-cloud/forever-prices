@@ -19,6 +19,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import updater  # noqa: E402
+import sales  # noqa: E402
 
 REGION = "eu"
 NAMESPACE = f"dynamic-forever-{REGION}"
@@ -70,6 +71,8 @@ def main():
     ap.add_argument("--history", default=None)
     ap.add_argument("--previous-status", default=None,
                     help="status.json of the last publish; skip publishing when Blizzard has no new snapshot")
+    ap.add_argument("--snapshot", default=os.path.join("snap", "sales.bin"),
+                    help="previous auction snapshot for the sales estimate (kept in the Actions cache)")
     args = ap.parse_args()
 
     cid = os.environ.get("BNET_CLIENT_ID", "")
@@ -86,6 +89,8 @@ def main():
     history_path = args.history or os.path.join(args.out, "history.json.gz")
     history = load_history(history_path)
     markets, summary = [], []
+    prev_snaps = sales.load_snapshots(args.snapshot)
+    new_snaps = {}
 
     for ah in index.get("auctions", []):
         ah_id, name = ah["id"], updater.ah_name(ah)
@@ -115,9 +120,22 @@ def main():
                 scanned = calendar.timegm(time.strptime(lm, "%a, %d %b %Y %H:%M:%S %Z"))
             except ValueError:
                 pass
+
+        # sales since the previous snapshot of this auction house
+        prev = prev_snaps.get(ah_id)
+        if prev and int(prev["scanned"]) == int(scanned):
+            new_snaps[ah_id] = prev  # same Blizzard snapshot as last time
+        else:
+            if prev:
+                sold = sales.sold_between(prev["auctions"], prev["scanned"], sales.quantities(auctions), scanned)
+                if sold is not None:
+                    sales.record(history, ah_id, sold, scanned, prev["scanned"])
+                    log(f"AH {ah_id}: {sum(sold.values())} units sold since the last snapshot")
+            new_snaps[ah_id] = {"scanned": int(scanned), "auctions": sales.take(auctions)}
+        sold_per_day = sales.per_day(history, ah_id, scanned)
         markets.append({"id": ah_id, "name": name, "group": GROUPS.get(ah_id, f"ah{ah_id}"),
                         "faction": faction_from_name(name), "scanned": scanned,
-                        "prices": prices, "avg": avg})
+                        "prices": prices, "avg": avg, "sold": sold_per_day})
         summary.append({"id": ah_id, "name": name, "group": GROUPS.get(ah_id, f"ah{ah_id}"),
                         "items": len(prices), "listings": len(auctions), "scanned": int(scanned)})
         log(f"AH {ah_id} {name}: {len(auctions)} listings, {len(prices)} items")
@@ -143,6 +161,7 @@ def main():
     with open(os.path.join(args.out, "status.json"), "w", encoding="utf-8") as f:
         json.dump({"updated": int(time.time()), "region": REGION.upper(), "markets": summary}, f, indent=1)
     save_history(history_path, history)
+    sales.save_snapshots(args.snapshot, new_snaps)
     log(f"Wrote {len(markets)} markets to {args.out}")
 
 

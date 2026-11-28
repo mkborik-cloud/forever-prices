@@ -348,6 +348,15 @@ def lua_market_block(m):
         for item_id, p in items[start:start + 15000]:
             out.append(f'd[{item_id}]="{p["min"]},{p["market"]},{avg.get(item_id, 0)},{p["qty"]},{p["auctions"]}"')
         out.append("end)() end")
+    # estimated units sold per day (separate table so older addon versions just ignore it)
+    sold = sorted((m.get("sold") or {}).items())
+    if sold:
+        out.append(f"M[{mid}].sold = {{}}")
+        for start in range(0, len(sold), 15000):
+            out.append(f"do local s = M[{mid}].sold; (function()")
+            for item_id, n in sold[start:start + 15000]:
+                out.append(f"s[{item_id}]={n:g}")
+            out.append("end)() end")
     return out
 
 

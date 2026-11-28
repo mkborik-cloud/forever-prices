@@ -26,6 +26,12 @@ local function Money(c)
     return (neg and "-" or "") .. out
 end
 
+local function SoldText(n)
+    if not n or n <= 0 then return "|cfff871710|r" end
+    if n < 10 then return format("~%.1f", n) end
+    return format("~%d", floor(n + 0.5))
+end
+
 local function Price(itemID)
     if not (SimpleAH and itemID) then return nil end
     local p = SimpleAH.GetMarket(itemID) or SimpleAH.GetMin(itemID)
@@ -116,6 +122,9 @@ local function Finish(r)
     if r.outputID then
         local v = Price(r.outputID)
         if v then r.value = v * (r.made or 1) end
+        if SimpleAH and SimpleAH.HasSalesData and SimpleAH.HasSalesData() then
+            r.soldPerDay = SimpleAH.GetSoldPerDay(r.outputID) or 0
+        end
     end
     return r
 end
@@ -207,6 +216,10 @@ local function MakeLine(parent)
             GameTooltip:AddDoubleLine("Craft cost", "-" .. Money(r.cost), 1, 1, 1, 1, 0.45, 0.45)
             GameTooltip:AddDoubleLine("Profit", Money(r.value * 0.95 - r.cost), 1, 1, 1, 1, 1, 1)
         end
+        if r.soldPerDay then
+            GameTooltip:AddDoubleLine("Sold per day (est.)", SoldText(r.soldPerDay), 1, 1, 1, 1, 1, 1)
+            GameTooltip:AddLine("7-day average from hourly snapshots: auctions that vanished with hours left. Cancelled auctions count too, so it runs a little high.", 0.6, 0.6, 0.6, true)
+        end
         GameTooltip:Show()
     end)
     f:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -224,7 +237,8 @@ local function Show(line, r)
         local color = profit >= 0 and "|cff4ade80+" or "|cfff87171"
         line.mid:SetText(GOLD .. "AH value|r  " .. Money(r.value)
             .. "   " .. MUTED .. "(5% cut|r |cfff87171-|r" .. Money(r.value * 0.05) .. MUTED .. ")|r")
-        line.bottom:SetText(GOLD .. "Profit|r  " .. color .. Money(profit) .. "|r")
+        local sold = r.soldPerDay and ("    " .. GOLD .. "Sold|r  " .. SoldText(r.soldPerDay) .. MUTED .. " / day|r") or ""
+        line.bottom:SetText(GOLD .. "Profit|r  " .. color .. Money(profit) .. "|r" .. sold)
     elseif r.outputID then
         line.mid:SetText(GOLD .. "AH value|r  " .. MUTED .. "no AH price|r")
         line.bottom:SetText("")
